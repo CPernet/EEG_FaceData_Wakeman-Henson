@@ -1,25 +1,30 @@
 %% *Bootstrapping and multiple comparison corrections in EEG*
 %
-% Script to demonstrate how the boostrap works and how we can use it for
-% multiple comparison correction in EEG. Some of the codes relies on
-% <https://github.com/LIMO-EEG-Toolbox/limo_eeg: LIMO EEG>.
-%
-% The bootstrap is a well-established early computer-age inferential 
-% method (<https://doi.org/10.1214/aos/1176344552: Efron, 1979>;
-% <https://web.stanford.edu/~hastie/CASI_files/PDF/casi.pdf: Efron & Hastie, 2016>;
-% <https://www.amazon.co.uk/Introduction-Bootstrap-Monographs-Statistics-Probability/dp/0412042312: Efron & Tibshirani, 1994>). 
-% The bootstrap is based on the idea that using only the data at hand 
-% can sometimes give better results than making unwarranted assumptions 
-% about the populations we’re trying to estimate. The core mechanism of the 
-% bootstrap is sampling with replacement from the data, which is a form of 
-% data-driven simulation. 
+% Literate script to demonstrate how the bootstrap works and how we can use
+% it for multiple comparison correction in EEG. Some of the code relies on 
+% <https://github.com/LIMO-EEG-Toolbox/limo_eeg: LIMO EEG>. A large part 
+% was inspired by <https://psyarxiv.com/h8ft7: G. Rousselet tutorial> on 
+% bootstrap (in R). The code below (and data) can be found 
+% <https://github.com/CPernet/EEG_FaceData_Wakeman-Henson/tree/master/bootstrap_and_MCC_tutorial: here>.
 %
 % Cyril Pernet - June 2019
 
+%%
+% The bootstrap is a well-established early computer-age inferential method 
+% (<https://doi.org/10.1214/aos/1176344552: Efron, 1979>;
+% <https://web.stanford.edu/~hastie/CASI_files/PDF/casi.pdf: Efron & Hastie, 2016>;
+% <https://www.amazon.co.uk/Introduction-Bootstrap-Monographs-Statistics-Probability/dp/0412042312: Efron & Tibshirani, 1994>). 
+% The bootstrap is based on the idea that using only the data at hand can 
+% sometimes give better results than making unwarranted assumptions about 
+% the populations we’re trying to estimate. The core mechanism of the 
+% bootstrap is sampling with replacement from the data, which is a form of 
+% data-driven simulation.
+
+
 %% The bootstrap idea
-% The idea is to make inferences using the data at hand only, avoiding making
-% assumptions about the underlying distribution, observation are coming
-% from by sampling with replacement the data.
+% The idea is to make inferences using the data at hand only, avoiding 
+% making assumptions about the underlying distribution, observations are 
+% coming from by sampling with replacement the data.
 
 % imagine we do an experiment, and have 60 observations
 clear variables
@@ -29,10 +34,10 @@ N = 60; obs = randn(N,1);
 avg_obs = mean(obs);
 
 %%
-% The theory tells us that, for normnally distributed data, the mean
-% follows a Student t-distribution with N-1 degrees of freedom. A confidence
-% interval (CI) for the mean is an interval that covers the population mean 
-% with a rate of error alpha, here 5% for a 95%CI
+% The theory tells us that, for normally distributed data, the mean follows 
+% a Student t-distribution with N-1 degrees of freedom. A confidence interval
+% (CI) for the mean is an interval that covers the population mean with a 
+% of error alpha, here 5% for a 95%CI 
 % (<https://link.springer.com/article/10.3758/s13423-015-0947-8: Morey ey
 % al. 2016>)
 
@@ -41,7 +46,9 @@ Tcritic     = tinv(alpha_value/2,N-1); % divide by two 2.5% each side of the dis
 se          = std(obs)/sqrt(N); % standard error
 CI          = [avg_obs-abs(Tcritic)*se avg_obs+abs(Tcritic)*se]; % same as [~,~,CI]=ttest(obs)
 
+%% 
 % Let's illustrate what it means
+
 figure('units','normalized','outerposition',[0 0 1 1])
 subplot(1,2,1); scatter([0.5:1/(N-1):1.5],obs,30,'filled'); 
 box on; grid on; axis tight; xlabel('observations'); ylabel('observed values')
@@ -67,8 +74,9 @@ text(-4.3,0.06,['T critic = ' num2str(Tcritic)]);
 text(2.2,0.06,['T critic = ' num2str(abs(Tcritic))]); 
 
 %%
-% we can compute the same thing by simply computing the distribution of
-% sample means if we were to collect data from say 1000 experiments
+% We can compute the same thing without assuming a Student t distribution and 
+% simply computing the distribution of sample means, as if we were collecting 
+% data from many experiments - ie by bootstrapping.
 
 Nboot     = 1000;
 resamples = randi(N,N,Nboot); % pick at random out of the N observations
@@ -88,7 +96,9 @@ hold on; bar(CI(1),5,h.BinWidth,'r');
 bar(CI(2),5,h.BinWidth,'r');
 axis tight; grid on; box on
 
-%% let's check how this works for various distributuons
+%%
+% Let's have a quick look at different distributions - and since this is 
+% that simple, let's get both the mean and the median confidence intervals
 
 figure('units','normalized','outerposition',[0 0 1 1]);
 resample = randi(100,100,1000);
@@ -119,10 +129,9 @@ end
 %% Bootstrap does not bring robustness
 %
 % In statistics, the term <https://en.wikipedia.org/wiki/Robust_statistics: robust>
-% means resistent to outliers. The mean is the least robust location
-% estimator with a breakdown point of 0 while the median is the most robust
-% with a breakdown point of 50% (i.e. doesn't change up to 50% of
-% outliers).
+% means resistant to outliers. The mean is the least robust location 
+% estimator with a breakdown point of 0 while the median is the most robust 
+% with a breakdown point of 50% (i.e. doesn't change up to 50% of outliers).
 
 A=[1:9 50]; Nboot = 1000;
 % rather that completly random, the resampling can be constrained, here to 
@@ -146,14 +155,14 @@ subplot(1,2,2); histogram(medians, 100); axis tight; grid on; box on
 title(['Boostrapped median values ' num2str(median(A)) ' 95% CI [' num2str(medians(low)) ' ' num2str(medians(high)) ']'])
 
 %% Bootstrap is not assumption free
-
+%
 % when we resample, we sample from the observed data only
 A = [1 1 1 2 2 2 3 3 3 6 9 12 15 15 15 16 16 16 17 17 17];
 resamples = randi(length(A),length(A),Nboot); % pick at random out of the N observations
 
 %%
-% we could however imagine that missing values exist, simply not observed
-% in the current sample! using such priors is called Bayesian bootstrap 
+% We could, however, imagine that missing values exist, simply not observed 
+% the current sample! Using such priors is called Bayesian bootstrap 
 % <https://projecteuclid.org/download/pdf_1/euclid.aos/1176345338: Rubin
 % (1981)>
 
@@ -192,8 +201,10 @@ limo_add_plots('cond1-2_single_subjects_Mean',1,electrode);
 title('condition 1 - all subjects')
 limo_add_plots('cond1-2_single_subjects_Mean',2,electrode); 
 title('condition 2 - all subjects')
-load('cond1-2_single_subjects_Mean'); 
+
+%%
 % set the proper time
+load('cond1-2_single_subjects_Mean'); 
 timevect    = Data.limo.data.start:(1000/Data.limo.data.sampling_rate):Data.limo.data.end;  % in msec
 
 % compute Mean of two conditions
@@ -220,10 +231,14 @@ fillhandle = patch([timevect fliplr(timevect)], [HDI2(1,:),fliplr(HDI2(2,:))], [
 set(fillhandle,'EdgeColor',[1 0 0],'FaceAlpha',0.2,'EdgeAlpha',0.8);%set edge color
 title('20% Trimmed Means and 95% HDI')
 
+%%
+% The beauty of using HDI is that 1 - this is the confidence interval of the 
+% mean (not the alpha prob. to include the population mean interval) and 
+% 2 - since this is Bayesian, you can accept the null (rather than only fail to reject).
 
 %% estimating H0 using bootstrap
-% the same way as we can compute the distribution of mean values, we can do
-% it for the null - for instance a one sample t-test tests if mean(data)=0
+% The same way as we can compute the distribution of mean values, we can do
+% it for the null - for instance, a one-sample t-test testing if the trimmed mean(data)=0 
 
 % let's get the trimmed mean again with 95% CI
 data = squeeze(Data.data(:,:,1,:));
@@ -242,6 +257,7 @@ grid on; hold on; [~,tmnull]=limo_trimci(null, 20/100, 5/100, 0);
 plot(timevect,squeeze(tmnull(electrode,:)),'k','LineWidth',2);
 title('null data and trimmed mean');
 
+%%
 % step 2: bootstrap as usual and 
 TM_null = NaN(Nboot,length(timevect)); % record trimmead means under the null (percentille bootatrap)
 T_null  = NaN(Nboot,length(timevect)); % record t values under the null (percentille-t bootatrap)
@@ -274,8 +290,8 @@ axis([timevect(1) timevect(end) -10 6])
 title('Trimmed mean with sig values based on t distrib (red) or percentile boot (green) or percentile t-boot (black)')
 
 %% multiple comparisons correction
-% the issue we are facing now, is that we have done 501 t-tests
-% so we can expect 25 false positives, we just don't know which ones
+% The issue we are facing now is that we have done 501 t-tests so we can 
+% expect 25 false positives, we just don't know which ones 
 
 % let's check if that's true
 h = ttest(randn(18,length(timevect)));
@@ -283,11 +299,11 @@ fprintf('found %g false positives out of %g expected \n',sum(h),5/100*length(tim
 
 
 %% 
-% In eeg we talk about familly-wise error (FWE) correction because tests are 
-% correlated with each others. The FWER = 1 - (1 - alpha)^n, so for 501 
-% tests we reach 100%. Since the FWER is the probability to make at least 
-% one error, let's compute the distribution of maximum t value -- if the 
-% biggest effect is controlled then smaller effects are controlled too.
+% In EEG we talk about family-wise error (FWE) correction because tests are
+% correlated with each other. The FWER = 1 - (1 - alpha)^n, so for 501 tests
+% we reach 100%. Since the FWER is the probability to make at least one error, 
+% let's compute the distribution of maximum t value -- if the biggest effect 
+% is controlled then smaller effects are controlled too. 
 
 for simulation = 1:100
     h(simulation,:) = ttest(randn(18,length(timevect)));
@@ -303,7 +319,7 @@ hold on;  plot(FWER.*100,'LineWidth',3); axis([0 100 1 110])
 title('FWER cumulative vs predicted'); 
 
 %% 
-% let's see what happens to our ERP using maximum statisitcs
+% let's see what happens to our ERP using maximum statistics
 
 Tmax_null = sort(max(T_null,[],2)); % this time we record t-values
 high      = round((1-alpha_value).*Nboot);
@@ -324,13 +340,12 @@ title('Trimmed mean with sig values based on percentile t-boot (red) with MCC (b
 
 %%
 % So far, we have considered each time point as independent and even didn't 
-% consider space (over all electrodes) - Dedicated methods have been 
-% developped like cluster-mass and tfce do do just taht, see 
+% consider space (over all electrodes) - Dedicated methods have been developped 
+% like cluster-mass and tfce do do just that, see 
 % <https://www.sciencedirect.com/science/article/pii/S0165027014002878:
-% Pernet et al 2015> for an overview of these, more powerful, approaches.
-% In short, instead of looking at the maximum of all data point, electrodes
-% and time points are clustered and we look at the maximum of clusters
-% under null. 
+% Pernet et al 2015> for an overview of these, more powerful, approaches. 
+% In short, instead of looking at the maximum of all data point, electrodes 
+% and time points are clustered and we look at the maximum of clusters under null.
 
 
 
